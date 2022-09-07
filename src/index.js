@@ -1,8 +1,15 @@
 import fetch from 'node-fetch';
 
 const TZKT_API = 'https://api.tzkt.io/v1';
-const SPICY_API = 'https://spicyb.sdaotools.xyz/';
-const MATTER = 'KT1K4jn23GonEmZot3pMGth7unnzZ6EaMVjY'; 
+const SPICY_API = 'https://spicyb.sdaotools.xyz/api/rest';
+const MATTER = 'KT1K4jn23GonEmZot3pMGth7unnzZ6EaMVjY';
+
+const fetchMatterPrice = async (agg) => {
+  const res = await fetch(`${SPICY_API}/TokenList?_ilike=${MATTER}:0&day_agg_start=${agg}`);
+  const json = await res.json();
+
+  return json.tokens[0].derivedxtz;
+}
 
 const fetchAccountsInternal = async () => {
   const res = await fetch(`${TZKT_API}/contracts/${MATTER}/bigmaps/accounts_internal/keys?limit=1000`);
@@ -65,8 +72,18 @@ const sortAccounts = (accounts, descend) => {
   return sort;
 }
 
+const calculateDayAgg = () => {
+  const agg_start = new Date();
+  agg_start.setDate(agg_start.getDate() - 7);
+
+  return Math.floor(agg_start.getTime() / 1000);
+}
+
 const start = async () => {
   const accounts = await mapAccounts();
+  const sorted = sortAccounts(accounts, true);
+
+  const matterPrice = await fetchMatterPrice(calculateDayAgg());
 }
 
 start();
