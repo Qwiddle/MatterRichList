@@ -12,41 +12,40 @@ const mapAccounts = async () => {
   const accounts = await fetchAccountsInternal();
 
   const mapped = accounts.reduce((map, current) => {
-      const address = current.key.user_address;
-      const grouped = map.get(address);
+    const address = current.key.user_address;
+    const grouped = map.get(address);
 
-      current.totalReward = BigInt(current.value.reward);
+    current.totalReward = BigInt(current.value.reward);
 
-      if(!grouped) {
-        map.set(address, { 
-          userAddress: address,
-          totalReward: current.value.reward, 
-          farms: {
-            ...current.farms, 
-            [current.key.token.fa2_address]: { 
-              tokenId: current.key.token.token_id,
-              reward: BigInt(current.value.reward), 
-              staked: BigInt(current.value.staked)
-            }
+    if(!grouped) {
+      map.set(address, { 
+        totalReward: current.totalReward, 
+        farms: {
+          ...current.farms, 
+          [current.key.token.fa2_address]: { 
+            tokenId: current.key.token.token_id,
+            reward: BigInt(current.value.reward), 
+            staked: BigInt(current.value.staked)
           }
-        });
-      } else {
-        map.set(address, { 
-          ...grouped, 
-          totalReward: BigInt(grouped.totalReward) + BigInt(current.totalReward), 
-          farms: {
-            ...grouped.farms, 
-            [current.key.token.fa2_address]: {
-              tokenId: current.key.token.token_id,
-              reward: BigInt(current.value.reward), 
-              staked: BigInt(current.value.staked)
-            }
+        }
+      });
+    } else {
+      map.set(address, { 
+        ...grouped, 
+        totalReward: BigInt(grouped.totalReward) + BigInt(current.totalReward), 
+        farms: {
+          ...grouped.farms, 
+          [current.key.token.fa2_address]: {
+            tokenId: current.key.token.token_id,
+            reward: BigInt(current.value.reward), 
+            staked: BigInt(current.value.staked)
           }
-        });
-      }
+        }
+      });
+    }
 
-      return map;
-    }, new Map);
+    return map;
+  }, new Map);
 
   return mapped;
 }
