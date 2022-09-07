@@ -50,6 +50,20 @@ const mapAccounts = async () => {
   return mapped;
 }
 
+const sortAccounts = (accounts, descend) => {
+  const sort = new Map(
+    Array.from(accounts).sort((a, b) => {
+      if(a[1].totalReward > b[1].totalReward) {
+        return descend ? -1 : 1;
+      } else {
+        return descend ? 1 : -1;
+      }
+    })
+  );
+
+  return sort;
+}
+
 const start = async () => {
   const accounts = await mapAccounts();
 }
