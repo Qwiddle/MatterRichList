@@ -19,28 +19,28 @@ const fetchAndMatchFarms = async (spicyPools, spicyTokens) => {
     configs[0].farm_configs : 
     configs[1].farm_configs
 
-  const output = farms.reduce((a, p) => {
+  const mapped = farms.reduce((a, p) => {
     const findToken = spicyTokens.find(token => token.tag === `${p.key.fa2_address}:${p.key.token_id}`);
-    const findPool = spicyPools.find(pool => pool.contract === `${p.key.fa2_address}`);
-    const uF = activeConfig.find(config => config.key.fa2_address === p.key.fa2_address);
+    const findPool = spicyPools.find(pool => pool.contract === p.key.fa2_address);
+    const findConfig = activeConfig.find(config => config.key.fa2_address === p.key.fa2_address);
 
-    if (uF) {
+    if (findConfig) {
       a.push({
         ...p,
         decimals: findToken ? findToken.decimals: 18, 
-        token0: findPool ? findPool.token0 : uF.key.fa2_address,
+        token0: findPool ? findPool.token0 : findConfig.key.fa2_address,
         token1: findPool ? findPool.token1 : null,
         reserveXtz: findPool ? findPool.reserve : null,
         derivedXtz: findToken ? findToken.derivedxtz: null,
         single: findPool ? false : false,
-        rps: Number(uF.value.reward_per_sec),
+        rps: Number(findConfig.value.reward_per_sec),
       });
     }
 
     return a;
   }, []);
 
-  return output;
+  return mapped;
 }
 
 const mapAccounts = async () => {
