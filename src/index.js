@@ -1,10 +1,46 @@
 import BigNumber from 'bignumber.js';
-import {
+import { fetchMatterConfigs,
+  fetchMatterFarms,
   fetchAccountsInternal,
 } from './api/tzkt.js';
-import {
+import { fetchSpicyPools,
+  fetchSpicyTokens,
   fetchMatterPrice
 } from './api/spicy.js';
+
+const fetchAndMatchFarms = async (spicyPools, spicyTokens) => {
+  const farms = await fetchMatterFarms();
+  const configs = await fetchMatterConfigs();
+
+  const today = new Date;
+  const active = new Date(configs[0].active_time);
+
+  let activeConfig = today.getTime() >= active.getTime() ?
+    configs[0].farm_configs : 
+    configs[1].farm_configs
+
+  const output = farms.reduce((a, p) => {
+    const findToken = spicyTokens.find(token => token.tag === `${p.key.fa2_address}:${p.key.token_id}`);
+    const findPool = spicyPools.find(pool => pool.contract === `${p.key.fa2_address}`);
+    const uF = activeConfig.find(config => config.key.fa2_address === p.key.fa2_address);
+
+    if (uF) {
+      a.push({
+        ...p,
+        decimals: findPool ? 18: findToken.decimals, 
+        token0: findPool ? findPool.token0 : uF.key.fa2_address,
+        token1: findPool ? findPool.token1 : null,
+        reserveXtz: findPool? findPool.reserve : null,
+        single: findPool ? false : false,
+        rps: Number(uF.value.reward_per_sec),
+      });
+    }
+
+    return a;
+  }, []);
+
+  return output;
+}
 
 const mapAccounts = async () => {
   const accounts = await fetchAccountsInternal();
@@ -66,7 +102,9 @@ const start = async () => {
   const accounts = await mapAccounts();
   const sorted = sortAccounts(accounts);
 
-  const matterPrice = await fetchMatterPrice();
+  const spicyPools = await fetchSpicyPools();
+  const spicyTokens = await fetchSpicyTokens();
+  const farms = await fetchAndMatchFarms(spicyPools, spicyTokens);
 }
 
 start();
