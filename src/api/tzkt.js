@@ -14,8 +14,8 @@ export const fetchTokenName = async (contract) => {
 }
 
 export const fetchSupply = async (contract, id) => {
-  const req = `${TZKT_API}/tokens/?contract=${contract}`;
-  const res = await (await fetch(`${req}${id ? `&tokenId=${id}` : ``}`)).json();
+  const req = `${TZKT_API}/tokens/?contract=${contract}${id ? `&tokenId=${id}` : ``}`;
+  const res = await (await fetch(req)).json();
   
   const supply = Number(res[0].totalSupply);
 
