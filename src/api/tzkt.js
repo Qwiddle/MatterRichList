@@ -44,10 +44,10 @@ export const fetchMatterFarms = async () => {
 
   const farms = await Promise.all(
     res.map(async farm => ({
-      value: farm.value,
-      key: farm.key,
-      supply: await fetchSupply(farm.key.fa2_address, farm.key.token_id),
       symbol: await fetchTokenName(farm.key.fa2_address),
+      key: farm.key,
+      value: farm.value,
+      supply: await fetchSupply(farm.key.fa2_address, farm.key.token_id),
     }))
   );
 

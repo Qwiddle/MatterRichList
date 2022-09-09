@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import BigNumber from 'bignumber.js';
 import { 
   SPICY_API, 
   MATTER 
@@ -14,16 +15,25 @@ const calculateDayAgg = () => {
 export const fetchMatterPrice = async (agg = calculateDayAgg()) => {
   const req = `${SPICY_API}/TokenList?_ilike=${MATTER}:0&day_agg_start=${agg}`;
   const res = await (await fetch(req)).json();
-  
+
   const price = res.tokens[0].derivedxtz;
+
   return price;
 }
 
 export const fetchSpicyTokens = async (agg = calculateDayAgg()) => {
   const req = `${SPICY_API}/TokenList?day_agg_start=${agg}`;
   const res = await (await fetch(req)).json();
-  
-  const spicyTokens = res.tokens;
+
+  const tokens = res.tokens;
+
+  const spicyTokens = tokens.map(token => ({
+    symbol: token.symbol, 
+    derivedXtz: token.derivedxtz, 
+    tag: token.tag,
+    decimals: token.decimals
+  }))
+
   return spicyTokens;
 }
 
