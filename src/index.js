@@ -26,13 +26,23 @@ const fetchAndMatchFarms = async (spicyPools, spicyTokens) => {
 
     if (findConfig) {
       a.push({
-        ...p,
-        decimals: findToken ? findToken.decimals: 18, 
-        token0: findPool ? findPool.token0 : findConfig.key.fa2_address,
-        token1: findPool ? findPool.token1 : null,
-        reserveXtz: findPool ? findPool.reserve : null,
-        derivedXtz: findToken ? findToken.derivedxtz: null,
-        single: findPool ? false : false,
+        key: p.key,
+        value: p.value,
+        ...(findPool && { 
+          pool: { 
+            symbol: p.symbol,
+            supply: p.supply,
+            ...findPool,
+            decimals: 18
+          } 
+        }),
+        ...(findToken && { 
+          token: { 
+            supply: p.supply,
+            ...findToken,
+          } 
+        }),
+        single: findPool ? false : true,
         rps: Number(findConfig.value.reward_per_sec),
       });
     }
@@ -43,37 +53,42 @@ const fetchAndMatchFarms = async (spicyPools, spicyTokens) => {
   return mapped;
 }
 
-const mapAccounts = async () => {
+const mapAccounts = async (farms) => {
   const accounts = await fetchAccountsInternal();
 
   const mapped = accounts.reduce((map, current) => {
     const address = current.key.user_address;
     const grouped = map.get(address);
 
-    current.totalReward = BigNumber(current.value.reward);
+    const farm = farms.find(farm => farm.key.fa2_address === current.key.token.fa2_address);
+    const farmValue = farm && current.value.staked != 0 ? Number(lpToTez(BigNumber(current.value.staked), farm)) : 0;
+ 
+    current.totalValue = Number(farmValue);
 
     if(!grouped) {
       map.set(address, { 
-        totalReward: current.totalReward,
+        totalValue: current.totalValue,
         farms: {
           ...current.farms, 
           [current.key.token.fa2_address]: { 
             tokenId: current.key.token.token_id,
             reward: BigNumber(current.value.reward), 
-            staked: BigNumber(current.value.staked).shiftedBy(-12)
+            staked: BigNumber(current.value.staked),
+            value: Number(farmValue)
           }
         }
       });
     } else {
       map.set(address, { 
         ...grouped, 
-        totalReward: BigNumber(grouped.totalReward).plus(BigNumber(current.totalReward)), 
+        totalValue: Number(grouped.totalValue) + Number(current.totalValue), 
         farms: {
           ...grouped.farms, 
           [current.key.token.fa2_address]: {
             tokenId: current.key.token.token_id,
             reward: BigNumber(current.value.reward), 
-            staked: BigNumber(current.value.staked).shiftedBy(-18)
+            staked: BigNumber(current.value.staked),
+            value: Number(farmValue)
           }
         }
       });
@@ -85,10 +100,26 @@ const mapAccounts = async () => {
   return mapped;
 }
 
+const lpToTez = (staked, farm) => {
+  if(!farm.single) {
+    const { reserve, supply, decimals } = farm.pool;
+
+    const tezPerLp = BigNumber(reserve).dividedBy(BigNumber(supply).shiftedBy(-decimals));
+    const lpValue = tezPerLp.multipliedBy(staked.shiftedBy(-decimals));
+
+    return lpValue.toFixed(2);
+  } else {
+    const { derivedXtz, decimals } = farm.token;
+
+    const tokenValue = BigNumber(derivedXtz).multipliedBy(staked.shiftedBy(-decimals));
+    return tokenValue.toFixed(2);
+  }
+}
+
 const sortAccounts = (accounts, descend = true) => {
   const sort = new Map(
     Array.from(accounts).sort((a, b) => {
-      if(a[1].totalReward > b[1].totalReward) {
+      if(a[1].totalValue > b[1].totalValue) {
         return descend ? -1 : 1;
       } else {
         return descend ? 1 : -1;
@@ -100,12 +131,12 @@ const sortAccounts = (accounts, descend = true) => {
 }
 
 const start = async () => {
-  const accounts = await mapAccounts();
-  const sorted = sortAccounts(accounts);
-
   const spicyPools = await fetchSpicyPools();
   const spicyTokens = await fetchSpicyTokens();
   const farms = await fetchAndMatchFarms(spicyPools, spicyTokens);
+
+  const accounts = await mapAccounts(farms);
+  const sorted = sortAccounts(accounts);
 }
 
 start();
