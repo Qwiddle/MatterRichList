@@ -27,10 +27,11 @@ const fetchAndMatchFarms = async (spicyPools, spicyTokens) => {
     if (uF) {
       a.push({
         ...p,
-        decimals: findPool ? 18: findToken.decimals, 
+        decimals: findToken ? findToken.decimals: 18, 
         token0: findPool ? findPool.token0 : uF.key.fa2_address,
         token1: findPool ? findPool.token1 : null,
-        reserveXtz: findPool? findPool.reserve : null,
+        reserveXtz: findPool ? findPool.reserve : null,
+        derivedXtz: findToken ? findToken.derivedxtz: null,
         single: findPool ? false : false,
         rps: Number(uF.value.reward_per_sec),
       });
